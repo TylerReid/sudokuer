@@ -1,44 +1,33 @@
 #![allow(dead_code)]
+use std::error::Error;
+use std::fmt;
 use std::io;
 use std::vec::Vec;
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Input sudoku. Spaces for empty cells. Press enter to go to next line.");
 
-    let mut sudoku = Sudoku::new();
-
-    for _ in 0..3 {
+    let mut input = String::new();
+    for _ in 0..9 {
         let mut line = String::new();
         io::stdin().read_line(&mut line)?;
-        trim_newline(&mut line);
 
-        if line.len() != 9 {
-            //todo better
+        if line.len() != 10 {
+            //todo better?
             panic!("line was {} chars, but we need 9", line.len())
         }
-
-        println!("{}", line);
+        input.push_str(&line);
     }
 
+    let sudoku = parse_input(input)?;
+    sudoku.print();
     Ok(())
 }
 
-struct Square<T> {
-    top_left: T,
-    top_center: T,
-    top_right: T,
+struct Square<T>([[T; 3]; 3]);
 
-    middle_left: T,
-    middle_center: T,
-    middle_right: T,
-
-    bottom_left: T,
-    bottom_center: T,
-    bottom_right: T,
-}
-
-type Sudoku = Square<Box>;
-type Box = Square<Cell>;
+type Sudoku = Square<CellBox>;
+type CellBox = Square<Cell>;
 
 enum Cell {
     Known(u8),
@@ -47,31 +36,28 @@ enum Cell {
 
 impl<T> Square<T> {
     fn make(initial: fn() -> T) -> Square<T> {
-        Square::<T> {
-            top_left: initial(),
-            top_center: initial(),
-            top_right: initial(),
-
-            middle_left: initial(),
-            middle_center: initial(),
-            middle_right: initial(),
-
-            bottom_left: initial(),
-            bottom_center: initial(),
-            bottom_right: initial(),
-        }
+        Square::<T>([
+            [initial(), initial(), initial()],
+            [initial(), initial(), initial()],
+            [initial(), initial(), initial()],
+        ])
     }
 }
 
 impl Sudoku {
     fn new() -> Sudoku {
-        Sudoku::make(|| Box::new())
+        Sudoku::make(|| CellBox::new())
+    }
+
+    fn print(&self) {
+        println!("-------------");
+        print!("|")
     }
 }
 
-impl Box {
-    fn new() -> Box {
-        Box::make(|| Cell::unknown())
+impl CellBox {
+    fn new() -> CellBox {
+        CellBox::make(|| Cell::unknown())
     }
 }
 
@@ -98,11 +84,19 @@ impl Cell {
     }
 }
 
-fn trim_newline(s: &mut String) {
-    if s.ends_with('\n') {
-        s.pop();
-        if s.ends_with('\r') {
-            s.pop();
+impl fmt::Display for Cell {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Cell::Known(x) => write!(f, "{}", x),
+            Cell::UnKnown(_) => write!(f, " "),
         }
     }
+}
+
+fn parse_input(s: String) -> Result<Sudoku, &'static str> {
+    let mut sudoku = Sudoku::new();
+    for i in 0..3 {
+
+    };
+    Ok(sudoku)
 }
