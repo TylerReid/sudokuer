@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fmt;
 use std::io;
 use std::vec::Vec;
+use array2d::Array2D;
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Input sudoku. Spaces for empty cells. Press enter to go to next line.");
@@ -11,54 +12,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     for _ in 0..9 {
         let mut line = String::new();
         io::stdin().read_line(&mut line)?;
+        trim_newline(&mut line);
 
-        if line.len() != 10 {
+        if line.len() != 9 {
             //todo better?
             panic!("line was {} chars, but we need 9", line.len())
         }
         input.push_str(&line);
     }
 
-    let sudoku = parse_input(input)?;
-    sudoku.print();
+    let sudoku = parse_input(&input)?;
+    println!("{:?}", sudoku.board);
     Ok(())
 }
 
-struct Square<T>([[T; 3]; 3]);
+struct Sudoku {
+    board: array2d::Array2D<Cell>,
+}
 
-type Sudoku = Square<CellBox>;
-type CellBox = Square<Cell>;
-
+#[derive(Debug, Clone)]
 enum Cell {
-    Known(u8),
-    UnKnown(Vec<u8>),
-}
-
-impl<T> Square<T> {
-    fn make(initial: fn() -> T) -> Square<T> {
-        Square::<T>([
-            [initial(), initial(), initial()],
-            [initial(), initial(), initial()],
-            [initial(), initial(), initial()],
-        ])
-    }
-}
-
-impl Sudoku {
-    fn new() -> Sudoku {
-        Sudoku::make(|| CellBox::new())
-    }
-
-    fn print(&self) {
-        println!("-------------");
-        print!("|")
-    }
-}
-
-impl CellBox {
-    fn new() -> CellBox {
-        CellBox::make(|| Cell::unknown())
-    }
+    Known(u32),
+    UnKnown(Vec<u32>),
 }
 
 impl Cell {
@@ -66,17 +41,17 @@ impl Cell {
         Cell::UnKnown(vec![1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
 
-    fn known(value: u8) -> Cell {
+    fn known(value: u32) -> Cell {
         Cell::Known(value)
     }
 
-    fn remove(&mut self, value: u8) {
+    fn remove(&mut self, value: u32) {
         if let Cell::UnKnown(unknown) = self {
             unknown.retain(|&x| x != value)
         }
     }
 
-    fn has_value(&self, value: u8) -> bool {
+    fn has_value(&self, value: u32) -> bool {
         match self {
             Cell::Known(x) => *x == value,
             Cell::UnKnown(x) => x.contains(&value),
@@ -93,10 +68,31 @@ impl fmt::Display for Cell {
     }
 }
 
-fn parse_input(s: String) -> Result<Sudoku, &'static str> {
-    let mut sudoku = Sudoku::new();
-    for i in 0..3 {
-
+fn parse_input(s: &str) -> Result<Sudoku, &'static str> {
+    let mut sudoku = Sudoku{
+        board: Array2D::filled_with(Cell::unknown(), 9, 9) 
     };
+
+    let mut chars = s.chars();
+    for row in 0..9 {
+        for column in 0..9 {
+            let cell_val = chars.next().unwrap_or(' ');
+            let cell = match cell_val.to_digit(10) {
+                Some(x) => Cell::known(x),
+                None => Cell::unknown(),
+            };
+
+            sudoku.board[(row, column)] = cell;
+        }
+    }
     Ok(sudoku)
+}
+
+fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+        if s.ends_with('\r') {
+            s.pop();
+        }
+    }
 }
