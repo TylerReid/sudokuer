@@ -21,13 +21,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         input.push_str(&line);
     }
 
-    let sudoku = parse_input(&input)?;
+    let sudoku = parse_input(&input);
     println!("{:?}", sudoku.board);
     Ok(())
 }
 
 struct Sudoku {
-    board: array2d::Array2D<Cell>,
+    board: Array2D<Cell>,
 }
 
 #[derive(Debug, Clone)]
@@ -68,24 +68,20 @@ impl fmt::Display for Cell {
     }
 }
 
-fn parse_input(s: &str) -> Result<Sudoku, &'static str> {
-    let mut sudoku = Sudoku{
-        board: Array2D::filled_with(Cell::unknown(), 9, 9) 
-    };
+fn parse_input(s: &str) -> Sudoku {
+    let mut cells = Vec::<Cell>::with_capacity(81);
 
-    let mut chars = s.chars();
-    for row in 0..9 {
-        for column in 0..9 {
-            let cell_val = chars.next().unwrap_or(' ');
-            let cell = match cell_val.to_digit(10) {
-                Some(x) => Cell::known(x),
-                None => Cell::unknown(),
-            };
-
-            sudoku.board[(row, column)] = cell;
-        }
+    for c in s.chars() {
+        let cell = match c.to_digit(10) {
+            Some(x) => Cell::known(x),
+            None => Cell::unknown(),
+        };
+        cells.push(cell);
     }
-    Ok(sudoku)
+
+    Sudoku {
+        board: Array2D::from_rows(&[cells]),
+    }
 }
 
 fn trim_newline(s: &mut String) {
